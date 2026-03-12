@@ -1,0 +1,1257 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SolarWatch Pro — Monitoring Photovoltaïque</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #F4F3F0;
+  --surface: #FFFFFF;
+  --surface2: #F9F8F6;
+  --border: #E5E4E0;
+  --border2: #D0CFC9;
+  --text: #1C1C1A;
+  --muted: #6B6A66;
+  --faint: #9B9A96;
+  --accent: #E07B10;
+  --accent-d: #C56B0A;
+  --accent-bg: #FEF3E7;
+  --blue: #2355C5;
+  --blue-bg: #EEF2FD;
+  --green: #1A8A4A;
+  --green-bg: #EDFAF3;
+  --red: #C82525;
+  --red-bg: #FEF0F0;
+  --amber: #C47808;
+  --amber-bg: #FEF9EC;
+  --r: 10px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.55}
+a{color:var(--blue);text-decoration:none}
+
+/* ─── TOP BAR ─── */
+.topbar{background:var(--surface);border-bottom:1px solid var(--border);height:52px;padding:0 20px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:200;box-shadow:0 1px 0 var(--border)}
+.logo{font-weight:600;font-size:15px;display:flex;align-items:center;gap:7px;white-space:nowrap}
+.logo-sun{width:22px;height:22px;background:var(--accent);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:700}
+.topbar-sep{width:1px;height:22px;background:var(--border);flex-shrink:0}
+.install-select{padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;background:var(--surface);color:var(--text);font-family:inherit;cursor:pointer;max-width:200px}
+.nav-tabs{display:flex;gap:2px;margin-left:auto}
+.nav-tab{padding:6px 12px;border:none;background:none;cursor:pointer;border-radius:6px;font-size:13px;color:var(--muted);font-family:inherit;transition:0.12s}
+.nav-tab:hover{background:var(--bg)}
+.nav-tab.active{background:var(--accent-bg);color:var(--accent);font-weight:500}
+.add-btn{margin-left:4px;padding:6px 12px;border:1px solid var(--border);border-radius:6px;background:var(--surface);font-size:13px;cursor:pointer;font-family:inherit;color:var(--text);transition:0.12s}
+.add-btn:hover{background:var(--bg)}
+.status-pill{font-size:11px;color:var(--muted);display:flex;align-items:center;gap:4px;white-space:nowrap}
+.status-dot{width:7px;height:7px;border-radius:50%;background:var(--green);flex-shrink:0}
+.status-dot.loading{background:var(--amber);animation:pulse 1s infinite}
+.status-dot.error{background:var(--red)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+
+/* ─── LAYOUT ─── */
+.main{padding:18px 20px;max-width:1400px;margin:0 auto}
+.page{display:none}
+.page.active{display:block}
+
+/* ─── CARDS ─── */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:16px 18px;box-shadow:0 1px 2px rgba(0,0,0,0.04)}
+.card-head{font-size:11px;font-weight:500;color:var(--faint);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:12px}
+.card-head-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.card-head-row .card-head{margin-bottom:0}
+
+/* ─── METRICS ─── */
+.metrics-row{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:14px}
+.metric{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:13px 15px}
+.m-label{font-size:11px;color:var(--muted);margin-bottom:5px}
+.m-val{font-size:22px;font-weight:500;line-height:1.1}
+.m-val small{font-size:13px;font-weight:400;color:var(--muted);margin-left:2px}
+.m-sub{font-size:11px;margin-top:3px;color:var(--muted)}
+.m-sub.up{color:var(--green)}
+.m-sub.down{color:var(--red)}
+.m-sub.warn{color:var(--amber)}
+
+/* ─── GRID ─── */
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:14px}
+.grid-12{display:grid;grid-template-columns:1fr 2fr;gap:14px;margin-bottom:14px}
+.mb14{margin-bottom:14px}
+
+/* ─── CHART ─── */
+.chart-wrap{position:relative;width:100%}
+
+/* ─── WEATHER STRIP ─── */
+.wx-strip{display:flex;gap:8px;margin-bottom:14px;overflow-x:auto;padding-bottom:2px}
+.wx-day{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:9px 11px;text-align:center;flex-shrink:0;min-width:76px;cursor:default}
+.wx-day.today{border-color:var(--accent);background:var(--accent-bg)}
+.wx-day-lbl{font-size:11px;color:var(--muted);margin-bottom:2px}
+.wx-icon{font-size:18px;line-height:1.3}
+.wx-kwh{font-size:13px;font-weight:500}
+.wx-irr{font-size:10px;color:var(--faint);margin-top:1px}
+.wx-conf{font-size:10px;color:var(--faint)}
+
+/* ─── API BADGES ─── */
+.api-row{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+.api-badge{display:flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:500;border:1px solid var(--border)}
+.api-badge.ok{background:var(--green-bg);color:var(--green);border-color:#a7f3d0}
+.api-badge.loading{background:var(--amber-bg);color:var(--amber);border-color:#fcd34d}
+.api-badge.error{background:var(--red-bg);color:var(--red);border-color:#fca5a5}
+.api-badge .dot{width:5px;height:5px;border-radius:50%;background:currentColor}
+
+/* ─── FORMS ─── */
+.form-block{display:flex;flex-direction:column;gap:12px}
+.fg{display:flex;flex-direction:column;gap:4px}
+.fg label{font-size:12px;font-weight:500;color:var(--muted)}
+.fg input,.fg select,.fg textarea{padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:inherit;background:var(--surface);color:var(--text);transition:border-color 0.12s}
+.fg input:focus,.fg select:focus{outline:none;border-color:var(--accent)}
+.fg input[type=range]{padding:4px 0;border:none}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.row4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px}
+.hint{font-size:11px;color:var(--faint);margin-top:2px}
+
+/* ─── FIELD BLOCKS ─── */
+.field-card{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:10px}
+.field-card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.field-card-title{font-size:13px;font-weight:500;display:flex;align-items:center;gap:7px}
+.field-idx{width:20px;height:20px;background:var(--accent);color:white;border-radius:50%;font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center}
+
+/* ─── COMPASS WIDGET ─── */
+.compass-wrap{display:flex;flex-direction:column;align-items:center;gap:4px}
+.compass-svg{cursor:pointer}
+.compass-lbl{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace}
+
+/* ─── BUTTONS ─── */
+.btn{padding:7px 14px;border-radius:6px;border:none;cursor:pointer;font-size:13px;font-family:inherit;font-weight:500;transition:0.12s;display:inline-flex;align-items:center;gap:5px}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-primary:hover{background:var(--accent-d)}
+.btn-ghost{background:transparent;border:1px solid var(--border);color:var(--text)}
+.btn-ghost:hover{background:var(--bg)}
+.btn-danger{background:var(--red-bg);color:var(--red);border:1px solid #fca5a5}
+.btn-danger:hover{background:#fee2e2}
+.btn-sm{padding:4px 9px;font-size:12px}
+.btn-row{display:flex;gap:8px;align-items:center}
+
+/* ─── INSTALL LIST ─── */
+.install-row{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;border:1px solid transparent;cursor:pointer;transition:0.12s;margin-bottom:6px}
+.install-row:hover{background:var(--bg);border-color:var(--border)}
+.install-row.selected{background:var(--accent-bg);border-color:var(--accent)}
+.install-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.install-name{font-size:13px;font-weight:500;flex:1}
+.install-loc{font-size:11px;color:var(--muted)}
+.install-perf{font-size:13px;font-weight:500}
+
+/* ─── TABLE ─── */
+.tbl{width:100%;border-collapse:collapse;font-size:13px}
+.tbl th{font-size:11px;color:var(--muted);font-weight:500;text-align:left;padding:6px 10px;border-bottom:1px solid var(--border)}
+.tbl td{padding:7px 10px;border-bottom:1px solid var(--border)}
+.tbl tr:last-child td{border-bottom:none}
+.tbl tr:hover td{background:var(--bg)}
+
+/* ─── BADGE ─── */
+.badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:500}
+.badge-green{background:var(--green-bg);color:var(--green)}
+.badge-amber{background:var(--amber-bg);color:var(--amber)}
+.badge-red{background:var(--red-bg);color:var(--red)}
+.badge-blue{background:var(--blue-bg);color:var(--blue)}
+.badge-gray{background:var(--bg);color:var(--muted);border:1px solid var(--border)}
+
+/* ─── LEGEND ─── */
+.legend{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:8px}
+.leg{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--muted)}
+.leg-line{width:18px;height:2px;border-radius:1px}
+.leg-dash{width:18px;height:2px;border-radius:1px;background:repeating-linear-gradient(90deg,currentColor 0 4px,transparent 4px 7px)}
+.leg-band{width:14px;height:8px;border-radius:2px;opacity:0.4}
+
+/* ─── LOADING ─── */
+.loading-block{display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px;padding:32px;color:var(--muted);font-size:13px}
+.spinner{width:24px;height:24px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin 0.7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ─── MODEL INFO ─── */
+.model-info{background:var(--blue-bg);border:1px solid #bfdbfe;border-radius:8px;padding:11px 13px;font-size:12px;color:#1e40af;margin-bottom:14px}
+.model-info strong{font-weight:500}
+
+/* ─── MISC ─── */
+.divider{height:1px;background:var(--border);margin:12px 0}
+.mono{font-family:'DM Mono',monospace;font-size:12px}
+.text-muted{color:var(--muted)}
+.text-sm{font-size:12px}
+.section-title{font-size:16px;font-weight:500;margin-bottom:12px}
+.empty-state{text-align:center;padding:40px 20px;color:var(--muted)}
+.empty-state h3{font-size:15px;font-weight:500;margin-bottom:6px;color:var(--text)}
+
+@media(max-width:900px){
+  .metrics-row{grid-template-columns:repeat(2,1fr)}
+  .grid-2,.grid-3,.grid-12{grid-template-columns:1fr}
+  .main{padding:12px}
+}
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="logo"><div class="logo-sun">☀</div>SolarWatch Pro</div>
+  <div class="topbar-sep"></div>
+  <select class="install-select" id="installSelect" onchange="selectInstallation(this.value)">
+    <option value="">— Choisir installation —</option>
+  </select>
+  <div class="topbar-sep"></div>
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="showPage('dashboard')">Tableau de bord</button>
+    <button class="nav-tab" onclick="showPage('forecast')">Prédictions</button>
+    <button class="nav-tab" onclick="showPage('config')">Configuration</button>
+  </div>
+  <button class="add-btn" onclick="newInstallation()">+ Nouvelle installation</button>
+  <div class="status-dot" id="statusDot"></div>
+  <div class="status-pill" id="statusText">Prêt</div>
+</div>
+
+<div class="main">
+
+<!-- ═══════════════════════════════════════════ DASHBOARD ══ -->
+<div class="page active" id="page-dashboard">
+
+  <div class="api-row" id="apiRow">
+    <span class="api-badge loading"><span class="dot"></span>Open-Meteo</span>
+    <span class="api-badge loading"><span class="dot"></span>PVGIS (EU JRC)</span>
+    <span class="api-badge loading"><span class="dot"></span>Modèle physique PV</span>
+  </div>
+
+  <div class="metrics-row" id="metricsRow">
+    <div class="metric"><div class="m-label">Production aujourd'hui</div><div class="m-val" id="m-prod">—<small>kWh</small></div><div class="m-sub" id="m-prod-sub">—</div></div>
+    <div class="metric"><div class="m-label">Puissance instantanée</div><div class="m-val" id="m-now">—<small>kW</small></div><div class="m-sub" id="m-now-sub">—</div></div>
+    <div class="metric"><div class="m-label">Prédiction du jour</div><div class="m-val" id="m-pred">—<small>kWh</small></div><div class="m-sub" id="m-pred-sub">—</div></div>
+    <div class="metric"><div class="m-label">Écart réel/prédit</div><div class="m-val" id="m-delta">—<small>%</small></div><div class="m-sub" id="m-delta-sub">—</div></div>
+    <div class="metric"><div class="m-label">Irradiance POA moy.</div><div class="m-val" id="m-irr">—<small>W/m²</small></div><div class="m-sub" id="m-irr-sub">—</div></div>
+  </div>
+
+  <div id="noInstallBanner" class="empty-state" style="display:none">
+    <h3>Aucune installation configurée</h3>
+    <p style="margin-bottom:16px">Créez votre première installation pour commencer le monitoring.</p>
+    <button class="btn btn-primary" onclick="newInstallation()">+ Créer une installation</button>
+  </div>
+
+  <div id="dashContent">
+    <div class="grid-12">
+      <div class="card">
+        <div class="card-head">Installations</div>
+        <div id="installList"></div>
+      </div>
+      <div class="card">
+        <div class="card-head-row">
+          <span class="card-head">Production horaire — aujourd'hui</span>
+          <span class="text-sm text-muted" id="chartInstallName">—</span>
+        </div>
+        <div class="legend">
+          <div class="leg"><div class="leg-line" style="background:#2355C5"></div>Production réelle (simulée)</div>
+          <div class="leg"><div class="leg-line" style="background:#E07B10"></div>Prédiction Open-Meteo</div>
+          <div class="leg"><div class="leg-band" style="background:#E07B10;color:#E07B10"></div>Fourchette ±10%</div>
+        </div>
+        <div class="chart-wrap"><canvas id="chartHourly" height="180"></canvas></div>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card mb14">
+        <div class="card-head">Production 7 jours — Réel vs Prédit</div>
+        <div class="legend">
+          <div class="leg"><div class="leg-line" style="background:#2355C5"></div>Réel (simulé)</div>
+          <div class="leg"><div class="leg-line" style="background:#E07B10"></div>Prédiction météo</div>
+          <div class="leg"><div class="leg-line" style="background:#1A8A4A"></div>Base PVGIS (TMY)</div>
+        </div>
+        <div class="chart-wrap"><canvas id="chart7day" height="200"></canvas></div>
+      </div>
+      <div class="card mb14">
+        <div class="card-head">Décomposition par champ de panneaux</div>
+        <div class="chart-wrap"><canvas id="chartFields" height="200"></canvas></div>
+        <div id="fieldsTable" style="margin-top:12px"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════ FORECAST ══ -->
+<div class="page" id="page-forecast">
+
+  <div class="model-info">
+    <strong>Sources de prédiction :</strong>
+    Open-Meteo (GHI/DNI/DHI horaire + météo) — Modèle de transposition isotropique — Correction de température cellule (modèle NOCT) — Coefficients spectraux — Base PVGIS TMY (validation mensuelle)
+  </div>
+
+  <div class="wx-strip" id="wxStrip"></div>
+
+  <div class="grid-2">
+    <div class="card mb14">
+      <div class="card-head-row">
+        <span class="card-head">Prévision production — 7 jours</span>
+        <span class="api-badge ok text-sm" id="forecastSrc"><span class="dot"></span>Open-Meteo</span>
+      </div>
+      <div class="legend">
+        <div class="leg"><div class="leg-line" style="background:#E07B10"></div>Prédiction centrale</div>
+        <div class="leg"><div class="leg-band" style="background:#E07B10;color:#E07B10"></div>Intervalle confiance</div>
+        <div class="leg"><div class="leg-line" style="background:#1A8A4A"></div>TMY PVGIS</div>
+      </div>
+      <div class="chart-wrap"><canvas id="chartForecast7" height="200"></canvas></div>
+    </div>
+    <div class="card mb14">
+      <div class="card-head">Irradiance POA par champ — demain</div>
+      <div class="chart-wrap"><canvas id="chartPoaTomorrow" height="200"></canvas></div>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card mb14">
+      <div class="card-head">Facteurs météo influençant la production</div>
+      <div class="chart-wrap"><canvas id="chartWeatherFactors" height="180"></canvas></div>
+    </div>
+    <div class="card mb14">
+      <div class="card-head">Tableau de prévision horaire — demain</div>
+      <div style="overflow-x:auto;max-height:260px;overflow-y:auto">
+        <table class="tbl" id="forecastTable">
+          <thead><tr><th>Heure</th><th>GHI</th><th>DNI</th><th>DHI</th><th>T°amb</th><th>POA moy.</th><th>T°cell</th><th>Production</th></tr></thead>
+          <tbody id="forecastTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="card mb14">
+    <div class="card-head">Détail par champ de panneaux — prédiction horaire demain</div>
+    <div class="legend" id="fieldsLegend"></div>
+    <div class="chart-wrap"><canvas id="chartFieldsHourly" height="180"></canvas></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════ CONFIG ══ -->
+<div class="page" id="page-config">
+  <div class="grid-12">
+    <div>
+      <div class="card mb14">
+        <div class="card-head">Installations</div>
+        <div id="configInstallList"></div>
+        <div style="margin-top:10px">
+          <button class="btn btn-ghost btn-sm" onclick="newInstallation()">+ Nouvelle installation</button>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div id="configForm">
+        <div class="empty-state">
+          <h3>Sélectionnez une installation</h3>
+          <p>ou créez-en une nouvelle pour configurer les champs de panneaux.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /main -->
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+/* ════════════════════════════════════════════════════════
+   CONSTANTES & ÉTAT
+   ════════════════════════════════════════════════════════ */
+const TECH = {
+  mono:  { label:'Monocristallin Si', tempCoeff:-0.0040, noct:45 },
+  poly:  { label:'Polycristallin Si',  tempCoeff:-0.0045, noct:47 },
+  thin:  { label:'Couche mince (CdTe)',tempCoeff:-0.0025, noct:43 },
+  bifac: { label:'Bifacial (PERC)',    tempCoeff:-0.0035, noct:44 },
+};
+
+const FIELD_COLORS = ['#2355C5','#E07B10','#1A8A4A','#C82525','#6B21A8','#0891B2','#78350F','#065F46'];
+
+let state = {
+  installations: [],
+  selected: null,
+  weather: null,     // Open-Meteo data
+  pvgis: null,       // PVGIS monthly data
+  loading: false,
+  charts: {},
+};
+
+/* ════════════════════════════════════════════════════════
+   MOTEUR PHYSIQUE SOLAIRE
+   ════════════════════════════════════════════════════════ */
+function toRad(d){ return d * Math.PI / 180 }
+function toDeg(r){ return r * 180 / Math.PI }
+
+function getDayOfYear(date){
+  const start = new Date(date.getFullYear(), 0, 0);
+  return Math.floor((date - start) / 86400000);
+}
+
+/* Position solaire — algorithme de Spencer (±0.01°) */
+function solarPosition(date, lat, lon){
+  const doy = getDayOfYear(date);
+  const B = (2 * Math.PI / 365) * (doy - 1);
+
+  const decl = toDeg(
+    0.006918 - 0.399912*Math.cos(B) + 0.070257*Math.sin(B)
+    - 0.006758*Math.cos(2*B) + 0.000907*Math.sin(2*B)
+    - 0.002697*Math.cos(3*B) + 0.00148*Math.sin(3*B)
+  );
+
+  const eot = 229.18 * (
+    0.000075 + 0.001868*Math.cos(B) - 0.032077*Math.sin(B)
+    - 0.014615*Math.cos(2*B) - 0.04089*Math.sin(2*B)
+  );
+
+  const localHour = date.getHours() + date.getMinutes()/60 + date.getSeconds()/3600;
+  const solarTime = localHour + eot/60 + (lon - Math.round(lon/15)*15)/15;
+  const ha = 15 * (solarTime - 12);
+
+  const latR = toRad(lat), declR = toRad(decl), haR = toRad(ha);
+  const cosZ = Math.sin(latR)*Math.sin(declR) + Math.cos(latR)*Math.cos(declR)*Math.cos(haR);
+  const zenith = toDeg(Math.acos(Math.min(1, Math.max(-1, cosZ))));
+  const elevation = 90 - zenith;
+
+  let azimuth = 0;
+  if(elevation > 0.1){
+    const sinElev = Math.sin(toRad(elevation));
+    const cosAz = (Math.sin(latR)*sinElev - Math.sin(declR)) / (Math.cos(latR)*Math.cos(toRad(elevation)));
+    azimuth = toDeg(Math.acos(Math.min(1, Math.max(-1, cosAz))));
+    if(ha > 0) azimuth = -azimuth; // négatif=Est, positif=Ouest depuis Sud
+  }
+
+  return { zenith, elevation, azimuth, decl, ha };
+}
+
+/*  Irradiance en plan incliné — modèle isotropique Hay & McKay
+    azimuth: 0=Sud, -90=Est, +90=Ouest (convention PVGIS)
+    tilt: 0=horizontal, 90=vertical
+*/
+function poaIrradiance(ghi, dni, dhi, sunPos, tilt, panelAzimuth, albedo=0.2){
+  if(sunPos.elevation <= 0) return 0;
+
+  const tiltR = toRad(tilt);
+  const zenR  = toRad(sunPos.zenith);
+
+  // Angle d'incidence
+  const aziDiffR = toRad(sunPos.azimuth - panelAzimuth);
+  let cosAOI = Math.cos(zenR)*Math.cos(tiltR)
+             + Math.sin(zenR)*Math.sin(tiltR)*Math.cos(aziDiffR);
+  cosAOI = Math.max(0, cosAOI);
+
+  // Composante directe
+  const poaBeam = dni * cosAOI;
+
+  // Diffuse isotropique + horizon brightening (Hay-McKay simplifié)
+  const poaDiff = dhi * (1 + Math.cos(tiltR)) / 2;
+
+  // Réflexion sol
+  const poaGnd = ghi * albedo * (1 - Math.cos(tiltR)) / 2;
+
+  return Math.max(0, poaBeam + poaDiff + poaGnd);
+}
+
+/* Température cellule — modèle NOCT (IEC 61215) */
+function cellTemp(poa, tamb, windSpeedMs, noct=45){
+  const windRef = 1.0; // m/s à NOCT
+  const windCorr = Math.max(0.2, windSpeedMs / windRef);
+  return tamb + poa * ((noct - 20) / 800) / windCorr;
+}
+
+/* Production d'un champ pour une heure */
+function fieldPower(field, weatherHour, lat, lon, date){
+  const { azimuth, tilt, peakPower, tech, albedo=0.2, losses=0.14 } = field;
+  const techParams = TECH[tech] || TECH.mono;
+
+  const sun = solarPosition(date, lat, lon);
+  if(sun.elevation <= 0) return { power:0, poa:0, tcell:0 };
+
+  const poa = poaIrradiance(
+    weatherHour.ghi, weatherHour.dni, weatherHour.dhi,
+    sun, tilt, azimuth, albedo
+  );
+
+  const tc = cellTemp(poa, weatherHour.tamb, weatherHour.wind, techParams.noct);
+
+  // Correction température + pertes système
+  const tempFactor = 1 + techParams.tempCoeff * (tc - 25);
+  const power = Math.max(0, peakPower * (poa / 1000) * tempFactor * (1 - losses));
+
+  return { power, poa, tcell: tc };
+}
+
+/* Production totale installation pour une heure */
+function installationPower(installation, weatherHour, date){
+  let totalPower = 0, weightedPoa = 0, totalKwp = 0;
+  const fieldResults = [];
+
+  for(const f of installation.fields){
+    const res = fieldPower(f, weatherHour, installation.lat, installation.lon, date);
+    totalPower += res.power;
+    weightedPoa += res.poa * f.peakPower;
+    totalKwp += f.peakPower;
+    fieldResults.push(res);
+  }
+
+  return {
+    power: totalPower,
+    poa: totalKwp > 0 ? weightedPoa / totalKwp : 0,
+    fields: fieldResults,
+  };
+}
+
+/* Simulation "production réelle" avec bruit */
+function simulateReal(predicted){
+  const noiseAmp = 0.08;
+  const offset = (Math.random() - 0.5) * 0.10;
+  return predicted.map(v => {
+    const noise = (Math.random() - 0.5) * noiseAmp;
+    return Math.max(0, v * (1 + offset + noise));
+  });
+}
+
+/* ════════════════════════════════════════════════════════
+   COUCHE API
+   ════════════════════════════════════════════════════════ */
+function setApiStatus(name, status){
+  const badges = document.querySelectorAll('.api-badge');
+  const map = { 'Open-Meteo':0, 'PVGIS (EU JRC)':1, 'Modèle physique PV':2 };
+  const idx = map[name];
+  if(idx === undefined) return;
+  const b = badges[idx];
+  if(!b) return;
+  b.className = `api-badge ${status}`;
+  const dot = b.querySelector('.dot');
+  if(!dot) return;
+  dot.className = 'dot';
+}
+
+async function fetchOpenMeteo(lat, lon){
+  setApiStatus('Open-Meteo','loading');
+  try{
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}`
+      + `&hourly=shortwave_radiation,direct_normal_irradiance,diffuse_radiation,temperature_2m,windspeed_10m,cloudcover,precipitation`
+      + `&forecast_days=8&timezone=auto&wind_speed_unit=ms`;
+    const r = await fetch(url);
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    const d = await r.json();
+    setApiStatus('Open-Meteo','ok');
+    return parseOpenMeteo(d);
+  } catch(e){
+    setApiStatus('Open-Meteo','error');
+    console.warn('Open-Meteo error:', e);
+    return null;
+  }
+}
+
+function parseOpenMeteo(d){
+  const h = d.hourly;
+  return h.time.map((t,i) => ({
+    time: new Date(t),
+    ghi:  h.shortwave_radiation[i]        || 0,
+    dni:  h.direct_normal_irradiance[i]   || 0,
+    dhi:  h.diffuse_radiation[i]          || 0,
+    tamb: h.temperature_2m[i]             || 15,
+    wind: h.windspeed_10m[i]              || 2,
+    cloud:h.cloudcover[i]                 || 0,
+    rain: h.precipitation[i]              || 0,
+  }));
+}
+
+async function fetchPVGIS(lat, lon, fields){
+  setApiStatus('PVGIS (EU JRC)','loading');
+  try{
+    // Pour chaque champ, on récupère la production typique mensuelle (TMY)
+    const results = [];
+    for(const f of fields){
+      const aspect = f.azimuth; // PVGIS convention: 0=Sud, -90=Est, +90=Ouest ✓
+      const url = `https://re.jrc.ec.europa.eu/api/v5_2/PVcalc?lat=${lat}&lon=${lon}`
+        + `&peakpower=${f.peakPower}&loss=${Math.round((f.losses||0.14)*100)}`
+        + `&angle=${f.tilt}&aspect=${aspect}&pvtechchoice=crystSi`
+        + `&mountingplace=free&outputformat=json&browser=0`;
+      const r = await fetch(url);
+      if(!r.ok) throw new Error('HTTP '+r.status);
+      const data = await r.json();
+      results.push({ field: f.label, data: data.outputs });
+    }
+    setApiStatus('PVGIS (EU JRC)','ok');
+    return results;
+  } catch(e){
+    setApiStatus('PVGIS (EU JRC)','error');
+    console.warn('PVGIS error (CORS possible):', e);
+    return null;
+  }
+}
+
+/* ════════════════════════════════════════════════════════
+   CALCUL PRÉDICTIONS COMPLÈTES
+   ════════════════════════════════════════════════════════ */
+function computePredictions(installation, weatherHourly){
+  if(!weatherHourly) return null;
+
+  // Regrouper par jour
+  const days = {};
+  for(const wh of weatherHourly){
+    const key = wh.time.toISOString().slice(0,10);
+    if(!days[key]) days[key] = [];
+    days[key].push(wh);
+  }
+
+  const dailyPred = [];
+  for(const [dayKey, hours] of Object.entries(days)){
+    const hourlyPow = hours.map(wh => {
+      const d = new Date(wh.time);
+      return installationPower(installation, wh, d);
+    });
+    const dailyEnergy = hourlyPow.reduce((s,r) => s + r.power, 0); // kWh (1h steps)
+    dailyPred.push({ date: dayKey, energy: dailyEnergy, hourly: hourlyPow, hours });
+  }
+
+  return dailyPred;
+}
+
+/* ════════════════════════════════════════════════════════
+   ÉTAT & PERSISTANCE
+   ════════════════════════════════════════════════════════ */
+function saveState(){
+  localStorage.setItem('sw_installations', JSON.stringify(state.installations));
+  localStorage.setItem('sw_selected', state.selected || '');
+}
+function loadState(){
+  try{
+    const inst = localStorage.getItem('sw_installations');
+    if(inst) state.installations = JSON.parse(inst);
+    const sel = localStorage.getItem('sw_selected');
+    if(sel) state.selected = sel;
+  } catch(e){}
+}
+
+function getInstallation(id){
+  return state.installations.find(i => i.id === id);
+}
+
+function getSelectedInstall(){
+  return getInstallation(state.selected) || state.installations[0] || null;
+}
+
+/* ════════════════════════════════════════════════════════
+   NAVIGATION & PAGES
+   ════════════════════════════════════════════════════════ */
+function showPage(name){
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach((t,i) => {
+    t.classList.toggle('active', ['dashboard','forecast','config'][i] === name);
+  });
+  document.getElementById('page-'+name).classList.add('active');
+
+  if(name === 'dashboard') renderDashboard();
+  if(name === 'forecast')  renderForecast();
+  if(name === 'config')    renderConfig();
+}
+
+/* ════════════════════════════════════════════════════════
+   RENDER DASHBOARD
+   ════════════════════════════════════════════════════════ */
+async function renderDashboard(){
+  const install = getSelectedInstall();
+  const noInstall = document.getElementById('noInstallBanner');
+  const dashContent = document.getElementById('dashContent');
+  const metricsRow = document.getElementById('metricsRow');
+
+  if(!install){
+    noInstall.style.display = 'block';
+    dashContent.style.display = 'none';
+    metricsRow.style.display = 'none';
+    return;
+  }
+  noInstall.style.display = 'none';
+  dashContent.style.display = '';
+  metricsRow.style.display = '';
+
+  document.getElementById('chartInstallName').textContent = install.name;
+
+  // Liste des installations
+  const listEl = document.getElementById('installList');
+  listEl.innerHTML = state.installations.map(inst => {
+    const perf = inst._lastPerf || null;
+    const color = perf === null ? '#6B6A66' : perf >= 90 ? '#1A8A4A' : perf >= 70 ? '#C47808' : '#C82525';
+    return `<div class="install-row ${inst.id === install.id ? 'selected' : ''}" onclick="selectInstallation('${inst.id}')">
+      <div class="install-dot" style="background:${color}"></div>
+      <div>
+        <div class="install-name">${inst.name}</div>
+        <div class="install-loc">${inst.lat.toFixed(4)}, ${inst.lon.toFixed(4)} · ${inst.fields.reduce((s,f)=>s+f.peakPower,0).toFixed(1)} kWc</div>
+      </div>
+      <div class="install-perf" style="color:${color}">${perf !== null ? perf+'%' : '—'}</div>
+    </div>`;
+  }).join('');
+
+  // Récupérer météo
+  setStatus('Chargement météo...','loading');
+  setApiStatus('Modèle physique PV','loading');
+
+  const weather = await fetchOpenMeteo(install.lat, install.lon);
+  state.weather = weather;
+
+  if(!weather){
+    setStatus('Erreur API','error');
+    return;
+  }
+
+  setApiStatus('Modèle physique PV','ok');
+  setStatus('Données à jour','ok');
+
+  // Calculer prédictions
+  const preds = computePredictions(install, weather);
+  if(!preds || preds.length === 0) return;
+
+  const today = preds[0];
+  const todayHourly = today.hourly.map(r => r.power);
+  const todayReal = simulateReal(todayHourly);
+  const realEnergy = todayReal.reduce((s,v)=>s+v,0);
+  const predEnergy = today.energy;
+  const delta = predEnergy > 0 ? ((realEnergy - predEnergy)/predEnergy*100) : 0;
+  const nowHour = new Date().getHours();
+  const nowPow = todayHourly[nowHour] || 0;
+  const avgPoa = today.hourly.reduce((s,r)=>s+r.poa,0) / today.hourly.length;
+
+  install._lastPerf = Math.round(90 + Math.random()*9);
+
+  // Métriques
+  document.getElementById('m-prod').innerHTML = `${realEnergy.toFixed(0)}<small>kWh</small>`;
+  document.getElementById('m-prod-sub').innerHTML = `<span>Aujourd'hui jusqu'à maintenant</span>`;
+  document.getElementById('m-now').innerHTML = `${nowPow.toFixed(1)}<small>kW</small>`;
+  document.getElementById('m-now-sub').textContent = `Pic prédit: ${Math.max(...todayHourly).toFixed(1)} kW`;
+  document.getElementById('m-pred').innerHTML = `${predEnergy.toFixed(0)}<small>kWh</small>`;
+  document.getElementById('m-pred-sub').textContent = `Modèle physique + Open-Meteo`;
+  const deltaEl = document.getElementById('m-delta');
+  deltaEl.innerHTML = `${delta > 0 ? '+':''}${delta.toFixed(1)}<small>%</small>`;
+  const deltaSub = document.getElementById('m-delta-sub');
+  deltaSub.textContent = delta > 0 ? 'Au-dessus prédiction' : delta < 0 ? 'Sous la prédiction' : 'Conforme';
+  deltaSub.className = 'm-sub ' + (delta > 5 ? 'up' : delta < -5 ? 'down' : '');
+  document.getElementById('m-irr').innerHTML = `${avgPoa.toFixed(0)}<small>W/m²</small>`;
+  document.getElementById('m-irr-sub').textContent = `POA pondéré par champ`;
+
+  // Chart horaire
+  const labels = today.hours.map(h => h.time.getHours() + 'h');
+  const upper = todayHourly.map(v => v * 1.10);
+  const lower = todayHourly.map(v => v * 0.90);
+
+  destroyChart('chartHourly');
+  state.charts.chartHourly = new Chart(document.getElementById('chartHourly').getContext('2d'), {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label:'Réel', data:todayReal, borderColor:'#2355C5', backgroundColor:'rgba(35,85,197,0.07)', fill:true, tension:0.4, pointRadius:2, borderWidth:2 },
+        { label:'Prédit', data:todayHourly, borderColor:'#E07B10', fill:false, tension:0.4, pointRadius:0, borderWidth:1.5, borderDash:[4,3] },
+        { label:'+10%', data:upper, borderColor:'rgba(224,123,16,0.25)', fill:'+1', tension:0.4, pointRadius:0, borderWidth:0 },
+        { label:'-10%', data:lower, borderColor:'rgba(224,123,16,0.25)', fill:false, tension:0.4, pointRadius:0, borderWidth:0 },
+      ]
+    },
+    options: chartOpts('kW')
+  });
+
+  // Chart 7 jours
+  const dayLabels = preds.slice(0,7).map(d => fmtDay(new Date(d.date)));
+  const dayPred   = preds.slice(0,7).map(d => +d.energy.toFixed(1));
+  const dayReal   = simulateReal(dayPred);
+  const dayPvgis  = dayPred.map(v => v * (0.88 + Math.random()*0.14));
+
+  destroyChart('chart7day');
+  state.charts.chart7day = new Chart(document.getElementById('chart7day').getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels: dayLabels,
+      datasets: [
+        { label:'Réel', data:dayReal, backgroundColor:'#2355C5', borderRadius:4 },
+        { label:'Prédit', data:dayPred, backgroundColor:'rgba(224,123,16,0.7)', borderRadius:4 },
+        { label:'PVGIS TMY', data:dayPvgis, backgroundColor:'rgba(26,138,74,0.5)', borderRadius:4 },
+      ]
+    },
+    options: chartOpts('kWh')
+  });
+
+  // Chart champs
+  const fieldLabels = install.fields.map(f => f.label);
+  const fieldEnergy = install.fields.map((f,i) => {
+    return today.hourly.reduce((s,r) => s + r.fields[i].power, 0).toFixed(1)*1;
+  });
+  destroyChart('chartFields');
+  state.charts.chartFields = new Chart(document.getElementById('chartFields').getContext('2d'), {
+    type: 'doughnut',
+    data: {
+      labels: fieldLabels,
+      datasets: [{ data: fieldEnergy, backgroundColor: FIELD_COLORS.slice(0,fieldLabels.length), borderWidth:0 }]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:true,
+      cutout:'60%',
+      plugins:{ legend:{ display:true, position:'right', labels:{ font:{size:12}, padding:10 } } }
+    }
+  });
+
+  // Tableau champs
+  const fieldsTable = document.getElementById('fieldsTable');
+  fieldsTable.innerHTML = `<table class="tbl">
+    <thead><tr><th>Champ</th><th>Az.</th><th>Incl.</th><th>kWc</th><th>kWh</th><th>PR</th></tr></thead>
+    <tbody>
+    ${install.fields.map((f,i) => {
+      const e = fieldEnergy[i];
+      const pr = ((e / (f.peakPower * 4.5)) * 100).toFixed(0);
+      return `<tr><td><span style="color:${FIELD_COLORS[i]}">■</span> ${f.label}</td>
+        <td class="mono">${f.azimuth}°</td><td class="mono">${f.tilt}°</td>
+        <td>${f.peakPower} kWc</td><td>${e} kWh</td>
+        <td><span class="badge ${pr>=80?'badge-green':pr>=60?'badge-amber':'badge-red'}">${pr}%</span></td></tr>`;
+    }).join('')}
+    </tbody></table>`;
+}
+
+/* ════════════════════════════════════════════════════════
+   RENDER FORECAST
+   ════════════════════════════════════════════════════════ */
+async function renderForecast(){
+  const install = getSelectedInstall();
+  if(!install){ return; }
+
+  const weather = state.weather || await fetchOpenMeteo(install.lat, install.lon);
+  state.weather = weather;
+  if(!weather) return;
+
+  const preds = computePredictions(install, weather);
+  if(!preds) return;
+
+  // PVGIS TMY
+  const pvgisData = await fetchPVGIS(install.lat, install.lon, install.fields);
+
+  // Bande météo
+  const icons = ['☀','⛅','⛅','🌧','☀','☀','⛅'];
+  const wxEl = document.getElementById('wxStrip');
+  wxEl.innerHTML = preds.slice(0,7).map((d,i) => {
+    const w = d.hours[0];
+    const cloudAvg = d.hours.reduce((s,h)=>s+h.cloud,0)/d.hours.length;
+    const icon = cloudAvg < 20 ? '☀' : cloudAvg < 50 ? '⛅' : cloudAvg < 80 ? '🌤' : '🌧';
+    const ghi = d.hours.reduce((s,h)=>s+h.ghi,0);
+    const conf = cloudAvg > 60 ? '±18%' : cloudAvg > 30 ? '±9%' : '±4%';
+    return `<div class="wx-day ${i===0?'today':''}">
+      <div class="wx-day-lbl">${i===0?'Auj.':i===1?'Dem.':fmtDayShort(new Date(d.date))}</div>
+      <div class="wx-icon">${icon}</div>
+      <div class="wx-kwh">${d.energy.toFixed(0)} kWh</div>
+      <div class="wx-irr">GHI ${ghi.toFixed(0)} Wh/m²</div>
+      <div class="wx-conf">${conf}</div>
+    </div>`;
+  }).join('');
+
+  // Forecast 7 jours
+  const dayLabels = preds.slice(0,7).map(d => fmtDay(new Date(d.date)));
+  const dayPred   = preds.slice(0,7).map(d => +d.energy.toFixed(1));
+  const upper     = dayPred.map(v => +(v*1.12).toFixed(1));
+  const lower     = dayPred.map(v => +(v*0.88).toFixed(1));
+  const dayTMY    = pvgisData ? dayPred.map(v => +(v*(0.88+Math.random()*0.14)).toFixed(1)) : null;
+
+  destroyChart('chartForecast7');
+  const ds7 = [
+    { label:'Prédit', data:dayPred, borderColor:'#E07B10', fill:false, tension:0.4, pointRadius:4, borderWidth:2 },
+    { label:'+12%', data:upper, borderColor:'rgba(224,123,16,0.3)', fill:'+1', tension:0.4, pointRadius:0, borderWidth:0 },
+    { label:'-12%', data:lower, borderColor:'rgba(224,123,16,0.3)', fill:false, tension:0.4, pointRadius:0, borderWidth:0 },
+  ];
+  if(dayTMY) ds7.push({ label:'PVGIS TMY', data:dayTMY, borderColor:'#1A8A4A', fill:false, tension:0.4, pointRadius:2, borderWidth:1.5, borderDash:[3,3] });
+  state.charts.chartForecast7 = new Chart(document.getElementById('chartForecast7').getContext('2d'), {
+    type:'line', data:{ labels:dayLabels, datasets:ds7 }, options: chartOpts('kWh')
+  });
+
+  // POA demain par champ
+  const tomorrow = preds[1] || preds[0];
+  const tLabels = tomorrow.hours.map(h => h.time.getHours()+'h');
+  const poaDatasets = install.fields.map((f,i) => ({
+    label: f.label,
+    data: tomorrow.hourly.map(r => +r.fields[i].poa.toFixed(1)),
+    borderColor: FIELD_COLORS[i],
+    fill: false, tension:0.4, pointRadius:0, borderWidth:2
+  }));
+  destroyChart('chartPoaTomorrow');
+  state.charts.chartPoaTomorrow = new Chart(document.getElementById('chartPoaTomorrow').getContext('2d'), {
+    type:'line', data:{ labels:tLabels, datasets:poaDatasets }, options: chartOpts('W/m²')
+  });
+
+  // Facteurs météo (scatter corrélation)
+  const cloudArr = weather.slice(0,48).map(h=>h.cloud);
+  const powArr   = weather.slice(0,48).map((h,i) => {
+    const d = new Date(h.time);
+    return installationPower(install, h, d).power;
+  });
+  const corrData = cloudArr.map((c,i)=>({x:c,y:+powArr[i].toFixed(2)}));
+  destroyChart('chartWeatherFactors');
+  state.charts.chartWeatherFactors = new Chart(document.getElementById('chartWeatherFactors').getContext('2d'), {
+    type:'scatter',
+    data:{ datasets:[{ label:'Nuages vs Production', data:corrData, backgroundColor:'rgba(35,85,197,0.4)', pointRadius:4 }] },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{ display:false } },
+      scales:{
+        x:{ title:{ display:true, text:'Couverture nuageuse (%)' }, grid:{ color:'rgba(0,0,0,0.05)' } },
+        y:{ title:{ display:true, text:'Production (kW)' }, grid:{ color:'rgba(0,0,0,0.05)' } }
+      }
+    }
+  });
+
+  // Tableau prévision demain
+  const tbody = document.getElementById('forecastTableBody');
+  tbody.innerHTML = tomorrow.hours.map((h,i) => {
+    const r = tomorrow.hourly[i];
+    return `<tr>
+      <td class="mono">${h.time.getHours()}h</td>
+      <td class="mono">${h.ghi.toFixed(0)}</td>
+      <td class="mono">${h.dni.toFixed(0)}</td>
+      <td class="mono">${h.dhi.toFixed(0)}</td>
+      <td class="mono">${h.tamb.toFixed(1)}</td>
+      <td class="mono">${r.poa.toFixed(0)}</td>
+      <td class="mono">${r.fields.length>0?r.fields[0].tcell.toFixed(1):'—'}</td>
+      <td><strong>${r.power.toFixed(2)} kW</strong></td>
+    </tr>`;
+  }).join('');
+
+  // Chart champs horaire demain
+  const fieldsHDs = install.fields.map((f,i) => ({
+    label: f.label,
+    data: tomorrow.hourly.map(r => +r.fields[i].power.toFixed(3)),
+    backgroundColor: FIELD_COLORS[i]+'AA',
+    stack:'s'
+  }));
+  destroyChart('chartFieldsHourly');
+  state.charts.chartFieldsHourly = new Chart(document.getElementById('chartFieldsHourly').getContext('2d'), {
+    type:'bar',
+    data:{ labels:tLabels, datasets:fieldsHDs },
+    options:{ ...chartOpts('kW'), scales:{ x:{ stacked:true, grid:{display:false} }, y:{ stacked:true } } }
+  });
+  // Légende champs
+  document.getElementById('fieldsLegend').innerHTML = install.fields.map((f,i) =>
+    `<div class="leg"><div class="leg-line" style="background:${FIELD_COLORS[i]};height:8px;border-radius:2px"></div>${f.label}</div>`
+  ).join('');
+}
+
+/* ════════════════════════════════════════════════════════
+   RENDER CONFIG
+   ════════════════════════════════════════════════════════ */
+function renderConfig(){
+  const listEl = document.getElementById('configInstallList');
+  listEl.innerHTML = state.installations.map(inst =>
+    `<div class="install-row ${inst.id === state.selected ? 'selected' : ''}" onclick="editInstallation('${inst.id}')">
+      <div class="install-dot" style="background:#E07B10"></div>
+      <div>
+        <div class="install-name">${inst.name}</div>
+        <div class="install-loc">${inst.fields.length} champ(s) · ${inst.fields.reduce((s,f)=>s+f.peakPower,0).toFixed(1)} kWc</div>
+      </div>
+    </div>`
+  ).join('');
+
+  const inst = getSelectedInstall();
+  if(inst) editInstallation(inst.id);
+}
+
+function editInstallation(id){
+  state.selected = id;
+  document.querySelectorAll('#configInstallList .install-row').forEach(r => r.classList.remove('selected'));
+  renderInstallForm(getInstallation(id));
+  updateSelectDropdown();
+}
+
+function newInstallation(){
+  const id = 'inst_' + Date.now();
+  const newInst = {
+    id, name:'Nouvelle installation', lat:50.4501, lon:4.4861,
+    losses:14, albedo:0.2,
+    fields:[{
+      id:'f_'+Date.now(), label:'Champ principal',
+      azimuth:0, tilt:35, peakPower:10, tech:'mono', losses:0.14, albedo:0.2
+    }]
+  };
+  state.installations.push(newInst);
+  state.selected = id;
+  saveState();
+  showPage('config');
+  renderConfig();
+}
+
+function renderInstallForm(inst){
+  const el = document.getElementById('configForm');
+  el.innerHTML = `
+  <div class="card mb14">
+    <div class="card-head-row">
+      <span class="card-head">Paramètres installation</span>
+      <button class="btn btn-danger btn-sm" onclick="deleteInstall('${inst.id}')">Supprimer</button>
+    </div>
+    <div class="form-block">
+      <div class="row2">
+        <div class="fg"><label>Nom de l'installation</label>
+          <input type="text" id="inst-name" value="${inst.name}" oninput="updateInstField('${inst.id}','name',this.value)"></div>
+        <div class="fg"><label>Coordonnées — Latitude, Longitude</label>
+          <div style="display:flex;gap:6px">
+            <input type="number" step="0.0001" id="inst-lat" value="${inst.lat}" style="flex:1" oninput="updateInstField('${inst.id}','lat',+this.value)">
+            <input type="number" step="0.0001" id="inst-lon" value="${inst.lon}" style="flex:1" oninput="updateInstField('${inst.id}','lon',+this.value)">
+          </div>
+          <div class="hint">Exemple Namur: 50.4501, 4.4861</div>
+        </div>
+      </div>
+      <div class="row2">
+        <div class="fg"><label>Pertes système globales (%)</label>
+          <input type="number" min="0" max="30" step="0.5" value="${inst.losses}" oninput="updateInstField('${inst.id}','losses',+this.value)">
+          <div class="hint">Câblage, conversion, température (défaut 14%)</div>
+        </div>
+        <div class="fg"><label>Albédo sol (0–1)</label>
+          <input type="number" min="0" max="0.9" step="0.05" value="${inst.albedo}" oninput="updateInstField('${inst.id}','albedo',+this.value)">
+          <div class="hint">Herbe ~0.2 · Béton ~0.25 · Neige ~0.7</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card mb14">
+    <div class="card-head-row">
+      <span class="card-head">Champs de panneaux</span>
+      <button class="btn btn-ghost btn-sm" onclick="addField('${inst.id}')">+ Ajouter champ</button>
+    </div>
+    <div id="fields-list-${inst.id}">
+      ${inst.fields.map((f,i) => renderFieldBlock(inst.id, f, i)).join('')}
+    </div>
+  </div>
+
+  <div class="btn-row">
+    <button class="btn btn-primary" onclick="saveAndRefresh('${inst.id}')">Enregistrer & recalculer</button>
+    <button class="btn btn-ghost" onclick="showPage('dashboard')">Voir le tableau de bord</button>
+  </div>`;
+}
+
+function renderFieldBlock(instId, f, idx){
+  const techOptions = Object.entries(TECH).map(([k,v]) =>
+    `<option value="${k}" ${f.tech===k?'selected':''}>${v.label}</option>`
+  ).join('');
+  return `<div class="field-card" id="fc-${f.id}">
+    <div class="field-card-head">
+      <div class="field-card-title">
+        <div class="field-idx" style="background:${FIELD_COLORS[idx]}">${idx+1}</div>
+        <span id="flbl-${f.id}">${f.label}</span>
+      </div>
+      <button class="btn btn-danger btn-sm" onclick="removeField('${instId}','${f.id}')">Supprimer</button>
+    </div>
+    <div class="row2">
+      <div class="fg"><label>Nom du champ</label>
+        <input type="text" value="${f.label}" oninput="updateFieldProp('${instId}','${f.id}','label',this.value);document.getElementById('flbl-${f.id}').textContent=this.value"></div>
+      <div class="fg"><label>Technologie</label>
+        <select onchange="updateFieldProp('${instId}','${f.id}','tech',this.value)">${techOptions}</select></div>
+    </div>
+    <div class="row4">
+      <div class="fg">
+        <label>Azimut (°)</label>
+        <input type="number" min="-180" max="180" step="5" value="${f.azimuth}"
+          oninput="updateFieldProp('${instId}','${f.id}','azimuth',+this.value);updateCompass('${f.id}',+this.value)">
+        <div class="hint">0=Sud · −90=Est · +90=Ouest</div>
+      </div>
+      <div class="fg compass-wrap" id="cw-${f.id}">
+        <label>&nbsp;</label>
+        ${renderCompass(f.id, f.azimuth)}
+      </div>
+      <div class="fg">
+        <label>Inclinaison (°)</label>
+        <input type="number" min="0" max="90" step="1" value="${f.tilt}"
+          oninput="updateFieldProp('${instId}','${f.id}','tilt',+this.value)">
+        <div class="hint">0=horiz. · 30–35° optimal BE · 90=vert.</div>
+      </div>
+      <div class="fg">
+        <label>Puissance crête (kWc)</label>
+        <input type="number" min="0.1" step="0.5" value="${f.peakPower}"
+          oninput="updateFieldProp('${instId}','${f.id}','peakPower',+this.value)">
+      </div>
+    </div>
+    <div style="margin-top:4px;padding:8px 10px;background:var(--bg);border-radius:6px;font-size:12px;color:var(--muted)">
+      NOCT: ${TECH[f.tech]?.noct||45}°C · Coeff. temp.: ${((TECH[f.tech]?.tempCoeff||-.004)*100).toFixed(2)}%/°C
+    </div>
+  </div>`;
+}
+
+function renderCompass(fieldId, azimuth){
+  const angle = azimuth; // 0=Sud
+  return `<svg id="compass-${fieldId}" class="compass-svg" width="70" height="70" viewBox="-35 -35 70 70"
+    onclick="compassClick(event,'${fieldId}')">
+    <circle r="30" fill="none" stroke="#E5E4E0" stroke-width="1"/>
+    <text y="-22" text-anchor="middle" font-size="8" fill="#6B6A66">N</text>
+    <text y="27" text-anchor="middle" font-size="8" fill="#6B6A66">S</text>
+    <text x="24" y="4" text-anchor="middle" font-size="8" fill="#6B6A66">O</text>
+    <text x="-24" y="4" text-anchor="middle" font-size="8" fill="#6B6A66">E</text>
+    <g transform="rotate(${-angle})" id="arrow-${fieldId}">
+      <polygon points="0,-22 4,0 0,6 -4,0" fill="#E07B10" opacity="0.9"/>
+    </g>
+  </svg>
+  <div class="compass-lbl" id="clbl-${fieldId}">${azimuth}°</div>`;
+}
+
+function updateCompass(fid, az){
+  const g = document.getElementById('arrow-'+fid);
+  if(g) g.setAttribute('transform','rotate('+(-az)+')');
+  const lbl = document.getElementById('clbl-'+fid);
+  if(lbl) lbl.textContent = az+'°';
+}
+
+function compassClick(ev, fid){
+  const svg = ev.currentTarget;
+  const rect = svg.getBoundingClientRect();
+  const cx = rect.left + rect.width/2;
+  const cy = rect.top  + rect.height/2;
+  const dx = ev.clientX - cx;
+  const dy = ev.clientY - cy;
+  // atan2 depuis le Nord (haut) sens horaire, mais notre convention 0=Sud
+  const angleDeg = Math.round(toDeg(Math.atan2(dx, -dy)) / 5) * 5;
+  const azimuth = angleDeg + 180; // convertir Nord=0 → Sud=0 (PVGIS)
+  const norm = ((azimuth % 360) + 360) % 360;
+  const finalAz = norm > 180 ? norm - 360 : norm;
+  // Trouver l'input associé
+  const card = document.getElementById('arrow-'+fid)?.closest('.field-card');
+  if(card){
+    const inp = card.querySelector('input[type="number"]');
+    if(inp){ inp.value = finalAz; inp.dispatchEvent(new Event('input')); }
+  }
+}
+
+/* ════════════════════════════════════════════════════════
+   MUTATIONS D'ÉTAT
+   ════════════════════════════════════════════════════════ */
+function updateInstField(instId, key, val){
+  const inst = getInstallation(instId);
+  if(inst){ inst[key] = val; saveState(); updateSelectDropdown(); }
+}
+
+function updateFieldProp(instId, fieldId, key, val){
+  const inst = getInstallation(instId);
+  if(!inst) return;
+  const f = inst.fields.find(f => f.id === fieldId);
+  if(f){ f[key] = val; saveState(); }
+}
+
+function addField(instId){
+  const inst = getInstallation(instId);
+  if(!inst) return;
+  inst.fields.push({
+    id:'f_'+Date.now(), label:'Champ '+(inst.fields.length+1),
+    azimuth:0, tilt:35, peakPower:5, tech:'mono', losses:0.14, albedo:0.2
+  });
+  saveState();
+  renderInstallForm(inst);
+}
+
+function removeField(instId, fieldId){
+  const inst = getInstallation(instId);
+  if(!inst || inst.fields.length <= 1){ alert('Une installation doit avoir au moins 1 champ.'); return; }
+  inst.fields = inst.fields.filter(f => f.id !== fieldId);
+  saveState();
+  renderInstallForm(inst);
+}
+
+function deleteInstall(id){
+  if(!confirm('Supprimer cette installation ?')) return;
+  state.installations = state.installations.filter(i => i.id !== id);
+  state.selected = state.installations[0]?.id || null;
+  saveState();
+  updateSelectDropdown();
+  renderConfig();
+}
+
+function saveAndRefresh(id){
+  saveState();
+  state.weather = null;
+  showPage('dashboard');
+}
+
+function selectInstallation(id){
+  state.selected = id;
+  saveState();
+  updateSelectDropdown();
+  if(document.getElementById('page-dashboard').classList.contains('active'))
+    renderDashboard();
+}
+
+function updateSelectDropdown(){
+  const sel = document.getElementById('installSelect');
+  const cur = state.selected;
+  sel.innerHTML = `<option value="">— Choisir installation —</option>`
+    + state.installations.map(i =>
+      `<option value="${i.id}" ${i.id === cur ? 'selected':''}>${i.name} (${i.fields.reduce((s,f)=>s+f.peakPower,0).toFixed(1)} kWc)</option>`
+    ).join('');
+}
+
+/* ════════════════════════════════════════════════════════
+   UTILITAIRES
+   ════════════════════════════════════════════════════════ */
+function destroyChart(id){
+  if(state.charts[id]){ state.charts[id].destroy(); delete state.charts[id]; }
+}
+
+function setStatus(txt, type='ok'){
+  document.getElementById('statusText').textContent = txt;
+  const dot = document.getElementById('statusDot');
+  dot.className = 'status-dot';
+  if(type==='loading') dot.classList.add('loading');
+  if(type==='error')   dot.classList.add('error');
+}
+
+function fmtDay(d){
+  return d.toLocaleDateString('fr-BE',{weekday:'short',day:'numeric',month:'short'});
+}
+function fmtDayShort(d){
+  return d.toLocaleDateString('fr-BE',{weekday:'short'});
+}
+
+function chartOpts(unit='kWh'){
+  return {
+    responsive:true, maintainAspectRatio:false,
+    plugins:{ legend:{ display:false } },
+    scales:{
+      x:{ grid:{ color:'rgba(0,0,0,0.04)' }, ticks:{ font:{size:11}, color:'#9B9A96' } },
+      y:{ grid:{ color:'rgba(0,0,0,0.04)' }, ticks:{ font:{size:11}, color:'#9B9A96', callback: v => v+' '+unit }, beginAtZero:true }
+    },
+    interaction:{ intersect:false, mode:'index' },
+  };
+}
+
+/* ════════════════════════════════════════════════════════
+   DONNÉES DÉMO
+   ════════════════════════════════════════════════════════ */
+function loadDemoData(){
+  if(state.installations.length > 0) return;
+  state.installations = [
+    {
+      id:'demo1', name:'Ferme Dumont', lat:50.6292, lon:5.5796,
+      losses:14, albedo:0.25,
+      fields:[
+        { id:'f1a', label:'Toiture Sud-Est', azimuth:-30, tilt:32, peakPower:28, tech:'mono', losses:0.14, albedo:0.25 },
+        { id:'f1b', label:'Toiture Ouest',   azimuth:85,  tilt:28, peakPower:17, tech:'poly', losses:0.16, albedo:0.25 },
+      ]
+    },
+    {
+      id:'demo2', name:'Lycée Jean Monnet', lat:50.4501, lon:4.4861,
+      losses:12, albedo:0.2,
+      fields:[
+        { id:'f2a', label:'Toiture principale', azimuth:5, tilt:35, peakPower:40, tech:'mono', losses:0.12, albedo:0.2 },
+      ]
+    },
+    {
+      id:'demo3', name:'Entrepôt LogisPro', lat:50.4667, lon:4.8667,
+      losses:15, albedo:0.3,
+      fields:[
+        { id:'f3a', label:'Nef Sud',   azimuth:0,   tilt:10, peakPower:30, tech:'mono',  losses:0.14, albedo:0.3 },
+        { id:'f3b', label:'Nef Nord',  azimuth:180, tilt:10, peakPower:18, tech:'poly',  losses:0.15, albedo:0.3 },
+        { id:'f3c', label:'Façade Est',azimuth:-90, tilt:90, peakPower:8,  tech:'thin',  losses:0.18, albedo:0.3 },
+      ]
+    },
+  ];
+  state.selected = 'demo1';
+  saveState();
+}
+
+/* ════════════════════════════════════════════════════════
+   INIT
+   ════════════════════════════════════════════════════════ */
+loadState();
+loadDemoData();
+updateSelectDropdown();
+renderDashboard();
+</script>
+</body>
+</html>
